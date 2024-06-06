@@ -13,7 +13,7 @@ except sqlite3.OperationalError:
 
 # Create Clients table
 try:
-    cur.execute("CREATE TABLE Clients(Name STR, City STR, Age INT,  Active INT)")
+    cur.execute("CREATE TABLE Clients(Name STR, City STR, Age INT, Password, Active INT, Admin STR)")
 except sqlite3.OperationalError:
     pass
 
@@ -56,37 +56,48 @@ def return_book():
     pass
 
 def add_book():
-    b_name = input("Input book name: ")
-    b_author = input("input author name: ")
-    b_year = input("Input the year the book was published: ")
-    b_type = int(input("Input book loan type(1/2/3): "))
-    cur.execute("""    
-                INSERT INTO books VALUES
-                (?, ?, ?, ?, 1)
-                 """,(b_name, b_author, b_year, b_type))
-    con.commit()  
+    if admin_check() == 1:
+        b_name = input("Input book name: ")
+        b_author = input("input author name: ")
+        b_year = input("Input the year the book was published: ")
+        b_type = int(input("Input book loan type(1/2/3): "))
+        cur.execute("""    
+                    INSERT INTO books VALUES
+                    (?, ?, ?, ?, 1)
+                    """,(b_name, b_author, b_year, b_type))
+        con.commit()  
+    else:
+        print("This action is only accessible to Admins")
                 
 
 def remove_book():
-    show_all_books()
-    user_selection = input("please select the ID of the book you wish to delete: ")
-    cur.execute("UPDATE books SET Active = 0 WHERE ROWID == ?", (user_selection))
-    con.commit()
+    
+    if admin_check() == 1:
+        show_all_books()
+        user_selection = input("please select the ID of the book you wish to delete: ")
+        cur.execute("UPDATE books SET Active = 0 WHERE ROWID == ?", (user_selection))
+        con.commit()
+    else:
+        print("This action is only accessible to Admins")
 
 def add_client():
     c_name = input("Input Client's full name: ")
     c_city = input("input Clients city of residence: ")
     c_age = input("Input Clients age: ")
+    c_password = input("Input a password for this account: ")
     cur.execute("""
                 INSERT INTO Clients Values
-                (?, ?, ?, 1)
-                """, (c_name, c_city, c_age))
+                (?, ?, ?, ?, 1, 0)
+                """, (c_name, c_city, c_age, c_password))
     con.commit()
 def remove_client():
-    show_all_clients()
-    user_selection = input("Please select the ID of the client you wish to delete: ")
-    cur.execute("UPDATE Clients SET Active = 0 WHERE ROWID = ?", (user_selection))
-    con.commit()
+    if admin_check() == 1:
+        show_all_clients()
+        user_selection = input("Please select the ID of the client you wish to delete: ")
+        cur.execute("UPDATE Clients SET Active = 0 WHERE ROWID = ?", (user_selection))
+        con.commit()
+    else:
+        print("This action is only accessible to Admins")
 
 def show_all_clients():
     clients = cur.execute(""" SELECT ROWID, * FROM Clients Where Active == 1""")
@@ -119,6 +130,32 @@ def show_client_by_name():
                 print("client not found")
     except sqlite3.Error as e:
         print(f'An error occured: {e}')
+
+def admin_check():
+    user_name = input("Please enter account user name: ")
+    password = input("Please enter account password: ")
+    
+   
+    cur.execute("SELECT * FROM Clients WHERE Name = ? AND Password = ?", (user_name, password))
+    pass_checks = cur.fetchall()
+    
+    if pass_checks:
+        admin_password = "AdminPassword"  
+        if password == admin_password:
+            cur.execute("UPDATE Clients SET Admin = 1 WHERE Name = ? AND Password = ?", (user_name, password))
+            if cur.rowcount > 0:
+                print("Admin status granted.")
+                return 1
+            else:
+                print("Failed to update admin status.")
+                return 0
+        else:
+            print("Incorrect admin password.")
+            return 0
+    else:
+        print("Incorrect login details.")
+        return 0
+        
 
 
 if __name__ == '__main__':

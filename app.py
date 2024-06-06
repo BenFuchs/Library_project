@@ -7,13 +7,13 @@ cur = con.cursor()
 
 # Create books table
 try:
-    cur.execute("CREATE TABLE books(Name STR, Author STR, Year_published INT, Type INT)")
+    cur.execute("CREATE TABLE books(Name STR, Author STR, Year_published INT, Type INT, Active INT)")
 except sqlite3.OperationalError:
     pass
 
 # Create Clients table
 try:
-    cur.execute("CREATE TABLE Clients(Name STR, City STR, Age INT)")
+    cur.execute("CREATE TABLE Clients(Name STR, City STR, Age INT,  Active INT)")
 except sqlite3.OperationalError:
     pass
 
@@ -44,7 +44,7 @@ def menu():
     return int(input("Please input selected action: "))
 
 def show_all_books():
-    books = cur.execute(""" SELECT ROWID, * FROM books """)
+    books = cur.execute(""" SELECT ROWID, * FROM books Where Active == 1""")
     print("ROWID\tName\tAuthor\tYear_published\tType")
     for book in books:
         print(f"{book[0]}\t{book[1]}\t{book[2]}\t{book[3]}\t{book[4]}")
@@ -62,7 +62,7 @@ def add_book():
     b_type = int(input("Input book loan type(1/2/3): "))
     cur.execute("""    
                 INSERT INTO books VALUES
-                (?, ?, ?, ?)
+                (?, ?, ?, ?, 1)
                  """,(b_name, b_author, b_year, b_type))
     con.commit()  
                 
@@ -70,22 +70,34 @@ def add_book():
 def remove_book():
     show_all_books()
     user_selection = input("please select the ID of the book you wish to delete: ")
-    cur.execute(" DELETE from books where ROWID = ?", (user_selection))
+    cur.execute("UPDATE books SET Active = 0 WHERE ROWID == ?", (user_selection))
     con.commit()
 
 def add_client():
-    pass
-
+    c_name = input("Input Client's full name: ")
+    c_city = input("input Clients city of residence: ")
+    c_age = input("Input Clients age: ")
+    cur.execute("""
+                INSERT INTO Clients Values
+                (?, ?, ?, 1)
+                """, (c_name, c_city, c_age))
+    con.commit()
 def remove_client():
-    pass
+    show_all_clients()
+    user_selection = input("Please select the ID of the client you wish to delete: ")
+    cur.execute("UPDATE Clients SET Active = 0 WHERE ROWID = ?", (user_selection))
+    con.commit()
 
 def show_all_clients():
-    pass
+    clients = cur.execute(""" SELECT ROWID, * FROM Clients Where Active == 1""")
+    print("ROWID\tName\tCity\tAge")
+    for client in clients:
+        print(f"{client[0]}\t{client[1]}\t{client[2]}\t{client[3]}")
 
 def show_book_by_name():
-    search_input = input("Please enter the name of the book you wish to see: ")
+    search_input = input("Please enter the name of the book you are looking for: ")
     try:
-        cur.execute("SELECT * FROM books WHERE Name LIKE ?", ('%' + search_input + '%',))
+        cur.execute("SELECT * FROM books WHERE Name LIKE ? AND Active == 1", ('%' + search_input + '%',))
         books = cur.fetchall()
         if books:
             for book in books:
@@ -96,9 +108,19 @@ def show_book_by_name():
         print(f"An error occurred: {e}")
 
 def show_client_by_name():
-    pass
+    search_input = input("Please enter the name of the client you are looking for: ")
+    try:
+        cur.execute("SELECT * FROM Clients WHERE Name LIKE ? AND Active == 1", ('%' + search_input + '%',))
+        clients = cur.fetchall()
+        if clients:
+            for client in clients:
+                print(client)
+        else:
+                print("client not found")
+    except sqlite3.Error as e:
+        print(f'An error occured: {e}')
 
-# Main loop
+
 if __name__ == '__main__':
     while True:
         user_input = menu()

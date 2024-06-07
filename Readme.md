@@ -22,10 +22,10 @@
    - **Status:** Done
 
 2. `loan()`
-   - **Status:** WIP (Return date needs to be tweaked, more minor adjustments and cleanup required)
+   - **Status:** Done
 
 3. `return_book()`
-   - **Status:** Not started (pass statement)
+   - **Status:** WIP (Continue here <--)
 
 4. `add_book()`
    - **Status:** Done
@@ -49,3 +49,8 @@
 
 11. `admin_check()`
     - **Status:** Done
+
+## To-do list:
+   1. add to Loans table an Active coloumn (I loan the book => active = 1, i return the book => active = 0, dont show active = 0 loans in the list of returning loan options)
+   2. when returning a book, change the active value of said book in books table back to 1 so it can be loaned out by other users 
+   3. actually finish the `return_book()` function 

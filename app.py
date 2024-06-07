@@ -1,5 +1,6 @@
 import sqlite3 
 from enum import Enum
+from datetime import datetime, timedelta
 
 # Connect to SQLite database
 con = sqlite3.connect('Library.db')
@@ -49,9 +50,49 @@ def show_all_books():
     for book in books:
         print(f"{book[0]}\t{book[1]}\t{book[2]}\t{book[3]}\t{book[4]}")
 
-def loan():
-    pass
+def get_client_id(username):
+    cur.execute("SELECT ROWID FROM Clients WHERE Name = ?", (username,))
+    client = cur.fetchone()
+    return client[0] if client else None
 
+def loan():
+    show_all_books()
+    book_choice = input("Please enter the name of the book you wish to loan: ")
+    who_is_loaning = input("Please enter your username: ")
+
+    client_id = get_client_id(who_is_loaning)
+    if not client_id:
+        print("Client not found.")
+        return
+
+    # Search for the book in the books table
+    cur.execute("SELECT * FROM books WHERE Name LIKE ?", ('%' + book_choice + '%',))
+    tempBook = cur.fetchall()
+
+    if tempBook:
+        for book in tempBook:
+            book_id = book[0]
+
+            # Check if the book is already loaned out
+            cur.execute("SELECT * FROM Loans WHERE Book_ID = ? AND Return_date IS NULL", (book_id,))
+            loaned_books = cur.fetchall()
+
+            if not loaned_books:
+                # Prepare loan details
+                loan_date = datetime.now().strftime('%Y-%m-%d')
+                return_date = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')  # Assuming a 2-week loan period
+
+                # Insert the loan record into the Loans table
+                try:
+                    cur.execute("INSERT INTO Loans (Book_ID, Client_ID, Loan_date, Return_date) VALUES (?, ?, ?, ?)",
+                                (book_id, client_id, loan_date, return_date))
+                    print(f"The book '{book[0]}' has been successfully loaned to {who_is_loaning}.")
+                except sqlite3.Error as e:
+                    print(f"An error occurred: {e}")
+            else:
+                print(f"The book '{book[0]}' is already loaned out.")
+    else:
+        print("Book not found/unavailable")
 def return_book():
     pass
 

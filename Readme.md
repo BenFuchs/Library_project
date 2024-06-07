@@ -22,7 +22,7 @@
    - **Status:** Done
 
 2. `loan()`
-   - **Status:** Not started (pass statement)
+   - **Status:** WIP (Return date needs to be tweaked, more minor adjustments and cleanup required)
 
 3. `return_book()`
    - **Status:** Not started (pass statement)

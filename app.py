@@ -20,7 +20,7 @@ except sqlite3.OperationalError:
 
 # Create Loans table
 try:
-    cur.execute("CREATE TABLE Loans(Book_ID INT, Client_ID INT, Loan_date STR, Return_date STR)")
+    cur.execute("CREATE TABLE Loans(Book_ID INT, Client_ID INT, Loan_date STR, Return_date STR, Active INT)")
 except sqlite3.OperationalError:
     pass
 
@@ -96,7 +96,7 @@ def loan():
 
                 # Insert the loan record into the Loans table
                 try:
-                    cur.execute("INSERT INTO Loans (Book_ID, Client_ID, Loan_date, Return_date) VALUES (?, ?, ?, ?)",
+                    cur.execute("INSERT INTO Loans (Book_ID, Client_ID, Loan_date, Return_date, Active) VALUES (?, ?, ?, ?, 1)",
                                 (book_id, client_id, loan_date, return_date))
                     cur.execute("UPDATE books SET Active = 0 WHERE ROWID = ?", (book_id,))
                     con.commit()
@@ -108,11 +108,12 @@ def loan():
     else:
         print("Book not found/unavailable")
 def return_book():
-    user_name = input("Please enter full user name:")
+    user_name = input("Please enter full user name: ")
     password = input("Please enter password: ")
+
     try:
         # Selecting the ROWID of the client based on the provided username and password
-        cur.execute("SELECT ROWID FROM Clients WHERE Name = ? AND Password = ?", (user_name, password,))
+        cur.execute("SELECT ROWID FROM Clients WHERE Name = ? AND Password = ?", (user_name, password))
         logged_user = cur.fetchone()
         
         print("Logged User:", logged_user)  # Print the contents of logged_user
@@ -120,11 +121,11 @@ def return_book():
         # Checking if the user exists
         if logged_user:
             # Printing a greeting message to the user
-            print(f"Hello {user_name}, which book would you like to return?")
+            print(f"Hello {user_name}, here are the books you have loaned currently: ")
 
             # Retrieving the loans associated with the logged-in user
             client_id = logged_user[0]  # Extracting the client_id from the fetched row
-            cur.execute("SELECT Book_ID FROM Loans WHERE Client_ID = ?", (client_id,))
+            cur.execute("SELECT Book_ID FROM Loans WHERE Client_ID = ? AND Active = 1", (client_id,))
             ID_of_loaned_books = cur.fetchall()
 
             # Iterating over each loaned book
@@ -133,18 +134,30 @@ def return_book():
                 cur.execute("SELECT * FROM books WHERE ROWID = ?", (loan_id[0],))
                 loaned_book = cur.fetchone()
                 
-                # Printing the details of each loaned book
+                # Printing the details of each loaned book except the last column
                 print(loaned_book[:-1])
+
+            # User inputs the name of the book to return
+            return_choice = input("Please enter the name of the book you would like to return: ")
+            cur.execute("SELECT ROWID FROM books WHERE Name = ?", (return_choice,))
+            ID_of_returned_book = cur.fetchone()
+
+            if ID_of_returned_book:
+                book_id = ID_of_returned_book[0]
+
+                # Update the book's Active status and the loan's Active status
+                cur.execute("UPDATE books SET Active = 1 WHERE ROWID = ?", (book_id,))
+                cur.execute("UPDATE Loans SET Active = 0 WHERE Book_ID = ? AND Client_ID = ?", (book_id, client_id))
+                con.commit()
+
+                print(f"The book '{return_choice}' has been successfully returned.")
+            else:
+                print("Book not found in the database.")
         else:
             print("Incorrect Username or Password")
+
     except Exception as e:
         print(f"An error occurred: {e}")
-
-        return_choice = input("Please enter the name of the book you would like to return: ")
-        # try:
-        #     cur.execute("SELECT ")
-        # except:
-        #     print("ERROR")
 
 def add_book():
     if admin_check() == 1:
